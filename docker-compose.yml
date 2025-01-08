@@ -1,0 +1,69 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: sparkhouse-clickhouse
+    ports:
+      - "8123:8123"   # HTTP
+      - "9000:9000"   # native
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-sparkhouse}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sparkhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-change-me}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - ./clickhouse/init:/docker-entrypoint-initdb.d:ro
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8123/ping"]
+      interval: 5s
+      retries: 20
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: sparkhouse-spark-master
+    environment:
+      SPARK_MODE: master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    volumes:
+      - ./pipeline:/opt/sparkhouse/pipeline
+      - ./data:/opt/sparkhouse/data
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    depends_on: [spark-master]
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-4G}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-4}
+    volumes:
+      - ./pipeline:/opt/sparkhouse/pipeline
+      - ./data:/opt/sparkhouse/data
+
+  api:
+    build: ./api
+    container_name: sparkhouse-api
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-sparkhouse}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sparkhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-change-me}
+    ports:
+      - "8000:8000"
+
+  dashboard:
+    build: ./dashboard
+    container_name: sparkhouse-dashboard
+    depends_on: [api]
+    ports:
+      - "3000:80"
+
+volumes:
+  clickhouse-data:
