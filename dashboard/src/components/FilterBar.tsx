@@ -47,7 +47,7 @@ const CHIP_LABELS: Record<ListKey, string> = {
 
 export function FilterBar({ filters, options, onChange }: Props) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
-  const remove = (key: ListKey, value: string) => set({ [key]: filters[key].filter((v) => v !== value) });
+  const remove = (key: ListKey, value: string) => set({ [key]: filters[key].filter((v) => v !== value) } as Partial<Filters>);
   const active = (Object.keys(CHIP_LABELS) as ListKey[]).flatMap((k) => filters[k].map((v) => ({ k, v })));
 
   return (
