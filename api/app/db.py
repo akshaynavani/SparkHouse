@@ -19,7 +19,7 @@ def get_client() -> Client:
         database=s.clickhouse_db,
         username=s.clickhouse_user,
         password=s.clickhouse_password,
-        settings={"max_execution_time": s.query_timeout_s, "readonly": 1},
+        settings={"max_execution_time": s.query_timeout_s},
     )
 
 
