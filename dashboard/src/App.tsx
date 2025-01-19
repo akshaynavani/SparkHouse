@@ -77,7 +77,7 @@ export default function App() {
   const drill = (key: string) => {
     const { filter, next } = DRILL[dimension];
     const current = filters[filter] as string[];
-    if (!current.includes(key)) updateFilters({ ...filters, [filter]: [...current, key] });
+    if (!current.includes(key)) updateFilters({ ...filters, [filter]: [...current, key] } as Filters);
     setDimension(next);
   };
 
